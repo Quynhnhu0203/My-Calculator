@@ -63,10 +63,18 @@
 
   // ===== Calculator IO =====
   function inputDigit(d){
-    if(justEvaluated){ tokens=[]; justEvaluated=false; current='0'; }
-    if(current==='0' || lastInput==='op' || lastInput==='percent-applied'){ current=String(d); }
-    else{ if(current.length>=MAX_LEN) return; current+=String(d); }
-    lastInput='digit'; updateDisplay();
+    if(justEvaluated){ 
+      tokens=[]; 
+      justEvaluated=false; 
+      current='0'; }
+    if(current==='0' || lastInput==='op' || lastInput==='percent-applied'){ 
+      current=String(d); }
+    else{ 
+      if(current.length>=MAX_LEN) 
+        return; 
+      current+=String(d); }
+    lastInput='digit'; 
+    updateDisplay();
   }
   function inputDot(){
     if(justEvaluated){ tokens=[]; justEvaluated=false; current='0'; }
@@ -88,18 +96,49 @@
     else current=current.slice(0,-1);
     lastInput='back'; updateDisplay();
   }
+  function addHistory(expr, result){
+    if (!Number.isFinite(result)) return;
+    historyList.unshift({ expr, result: Number(result.toFixed(12)), ts: Date.now() });
+    save('calc_history', historyList);
+    renderHistory();
+  }
   function negate(){ if(current==='0') return; current=current.startsWith('-')?current.slice(1):'-'+current; lastInput='negate'; updateDisplay(); }
   function sqrt(){
     const n=parseFloat(current);
-    if(n<0){ showPopup('Invalid input: Cannot take square root of a negative number'); current='Invalid input'; setTimeout(()=>{current='0'; updateDisplay();},0); return; }
-    current=toDisplay(Math.sqrt(n)); lastInput='sqrt'; updateDisplay();
+    if (n < 0) {
+      showPopup('Invalid input: Cannot take square root of a negative number');
+      current = '0';
+      updateDisplay();
+      return;
+    }
+    const r = Math.sqrt(n);
+    current = toDisplay(r);
+    addHistory(`√(${formatNumber(n)})`, r);   // ← log vào History
+    justEvaluated = true;                      // ← quan trọng
+    lastInput = 'sqrt';
+    updateDisplay();
   }
   function percent(){
-    if(tokens.length>=2 && typeof tokens[tokens.length-1]!=='number'){
-      const a=tokens[tokens.length-2], b=parseFloat(current);
-      if(Number.isFinite(a)&&Number.isFinite(b)){ current=toDisplay(a*(b/100)); lastInput='percent-applied'; updateDisplay(); return; }
+    // ngữ cảnh:  a op b%  =>  b := a * (b/100)
+    if (tokens.length >= 2 && typeof tokens[tokens.length - 1] !== 'number') {
+      const a = tokens[tokens.length - 2];
+      const b = parseFloat(current);
+      if (Number.isFinite(a) && Number.isFinite(b)) {
+        const val = a * (b / 100);
+        current = toDisplay(val);
+        addHistory(`${formatNumber(a)} ${symbol(tokens[tokens.length - 1])} ${formatNumber(b)}%`, val); // ← log
+        updateDisplay();
+        return;
+      }
     }
-    current=toDisplay(parseFloat(current)/100); lastInput='percent-applied'; updateDisplay();
+    // mặc định: b% = b / 100
+    const n = parseFloat(current);
+    const val = n / 100;
+    current = toDisplay(val);
+    addHistory(`${formatNumber(n)}%`, val);  // ← log
+    justEvaluated = true;
+    lastInput = 'percent';
+    updateDisplay();
   }
   function equals(){
     if(lastInput!=='op') pushCurrent();
@@ -113,7 +152,10 @@
       historyList.unshift({expr: exprStr, result: Number(result.toFixed(12)), ts: Date.now()});
       save('calc_history', historyList);
     }
-    tokens=[]; justEvaluated=true; lastInput='equals'; updateDisplay();
+    tokens=[]; 
+    justEvaluated=true; 
+    lastInput='equals'; 
+    updateDisplay();
   }
 
   function evaluateExpression(tk){
