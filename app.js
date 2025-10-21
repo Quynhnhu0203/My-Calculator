@@ -189,21 +189,49 @@
     }
 
     function doEquals(){
-      const a = parseFloat(prev.replace(/,/g,'')); const b = parseFloat(current.replace(/,/g,''));
-      if (Number.isNaN(a)||Number.isNaN(b)||!op) return;
+      const hasOp = !!op && prev !== '';
+
+      // Trường hợp KHÔNG có phép toán đang chờ (chỉ nhập số rồi bấm "=")
+      if (!hasOp){
+        const curVal = parseFloat(current.replace(/,/g,''));
+        if (!Number.isNaN(curVal) && current !== ''){
+          // Lưu vào History dạng "number = number"
+          pushHistory(`${current}`, curVal);
+          lastExpr = `${current}`;
+          showLastExpr = false;
+          // Giữ nguyên current; chuyển về trạng thái “vừa tính xong”
+          op = null;
+          waitingNew = true;
+          justCalculated = true;
+          update();
+        }
+        return;
+      }
+
+      // Trường hợp CÓ phép toán đang chờ (bình thường)
+      const a = parseFloat(prev.replace(/,/g,'')); 
+      const b = parseFloat(current.replace(/,/g,''));
+      if (Number.isNaN(a) || Number.isNaN(b) || !op) return;
+
       let r;
-      if (op==='+') r=a+b;
-      else if (op==='-') r=a-b;
-      else if (op==='×') r=a*b;
-      else if (op==='÷'){
-        if (b===0){ alert('Error: Cannot divide by zero'); return; }
-        r=a/b;
+      if (op === '+') r = a + b;
+      else if (op === '-') r = a - b;
+      else if (op === '×') r = a * b;
+      else if (op === '÷'){
+        if (b === 0){ alert('Error: Cannot divide by zero'); return; }
+        r = a / b;
       } else return;
 
       pushHistory(`${prev} ${op} ${current}`, r);
-      lastExpr = `${prev} ${op} ${current}`; showLastExpr=false;
-      current = r.toString(); op=null; waitingNew=true; justCalculated=true; update();
+      lastExpr = `${prev} ${op} ${current}`;
+      showLastExpr = false;
+      current = r.toString();
+      op = null;
+      waitingNew = true;
+      justCalculated = true;
+      update();
     }
+
 
     function backspace(){
       if (justCalculated){
