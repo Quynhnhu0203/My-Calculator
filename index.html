@@ -1,90 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>IA02 – My Calculator</title>
-<link rel="stylesheet" href="style.css" />
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Calculator</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="popup" class="popup"></div>
-
-<div class="wrap">
-  <!-- ===== Left: Calculator ===== -->
-  <main class="calc" role="application" aria-label="My Calculator">
-    <div class="topbar">
-      <div class="brand"><span class="dot"></span><strong>Calculator</strong><span class="sr-only">Quỳnh Như</span></div>
-      <div style="font-size:12px; color:var(--muted)">💙Quỳnh Như💙</div>
-    </div>
-
-    <section class="screen" aria-live="polite">
-      <div id="memFlag" class="mem-flag" aria-hidden="true">M</div>
-      <div id="history" class="history" aria-label="history"></div>
-      <div id="display" class="display" aria-label="display">0</div>
-    </section>
-
-    <section class="keys" aria-label="keypad">
-      <div class="memrow" aria-label="memory keys">
-        <button class="small" data-mem="MC" title="Memory Clear">MC</button>
-        <button class="small" data-mem="MR" title="Memory Recall">MR</button>
-        <button class="small" data-mem="M+" title="Memory Add">M+</button>
-        <button class="small" data-mem="M-" title="Memory Subtract">M-</button>
-        <button class="small" data-mem="MS" title="Memory Store">MS</button>
+  <div class="calculator-container">
+    <!-- App card -->
+    <div class="app-card" id="appCard">
+      <div class="title-bar">
+        <div class="title-left">
+          <button class="menu-btn" aria-label="Menu" title = "Menu">
+             <span class="menu-icon" ></span>
+            </button>
+          <span class="app-chip">My Calculator</span>
+        </div>
+        <div class="title-right">
+          <button class="history-toggle" id="togglePanel" aria-expanded="false" title="History & Memory">
+            🕘
+          </button>
+        </div>
       </div>
 
-      <button data-action="percent" class="op" title="Percent %">%</button>
-      <button data-action="sqrt" class="op" title="Square root">√</button>
-      <button data-action="ce" class="op danger" title="Clear entry">CE</button>
-      <button data-action="c" class="op danger" title="Clear all">C</button>
+      <!-- Display -->
+      <div class="display">
+        <div class="previous-operand" id="prev"></div>
+        <div class="current-operand" id="curr">0</div>
+      </div>
 
-      <button data-action="back" class="op" title="Backspace">←</button>
-      <button data-digit="7">7</button>
-      <button data-digit="8">8</button>
-      <button data-digit="9">9</button>
-      <button data-op="/" class="op" title="Divide">÷</button>
+      <!-- Memory mini row -->
+      <div class="mem-bar">
+        <button class="mem-btn" data-mem="MC" title="Memory Clear">MC</button>
+        <button class="mem-btn" data-mem="MR" title="Memory Recall">MR</button>
+        <button class="mem-btn" data-mem="Mplus" title="Memory Add">M+</button>
+        <button class="mem-btn" data-mem="Mminus" title="Memory Subtract">M-</button>
+        <button class="mem-btn" data-mem="MS" title="Memory Store">MS</button>
+      </div>
 
-      <button data-digit="4">4</button>
-      <button data-digit="5">5</button>
-      <button data-digit="6">6</button>
-      <button data-op="*" class="op" title="Multiply">×</button>
+      <!-- Buttons -->
+      <div class="buttons-grid">
+        <!-- Row 1 -->
+        <button class="btn btn-clear" data-action="percent">%</button>
+        <button class="btn btn-clear" data-action="clear-entry">CE</button>
+        <button class="btn btn-clear" data-action="clear-all">C</button>
+        <button class="btn btn-clear" data-action="backspace">⌫</button>
 
-      <button data-digit="1">1</button>
-      <button data-digit="2">2</button>
-      <button data-digit="3">3</button>
-      <button data-op="-" class="op" title="Subtract">−</button>
+        <!-- Row 2 -->
+        <button class="btn btn-operation" data-op="sqrt">√x</button>
+        <button class="btn btn-operation" data-op="square">x²</button>
+        <button class="btn btn-operation" data-op="reciprocal">1/x</button>
+        <button class="btn btn-operation" data-op="÷">÷</button>
 
-      <button data-action="negate" title="Plus/minus">±</button>
-      <button data-digit="0" class="wide">0</button>
-      <button data-action="dot" title="Decimal point">.</button>
-      <button data-op="+" class="op" title="Add">+</button>
+        <!-- Row 3 -->
+        <button class="btn" data-num="7">7</button>
+        <button class="btn" data-num="8">8</button>
+        <button class="btn" data-num="9">9</button>
+        <button class="btn btn-operation" data-op="×">×</button>
 
-      <button data-action="equals" class="eq wide" title="Equals">=</button>
-    </section>
-  </main>
+        <!-- Row 4 -->
+        <button class="btn" data-num="4">4</button>
+        <button class="btn" data-num="5">5</button>
+        <button class="btn" data-num="6">6</button>
+        <button class="btn btn-operation" data-op="-">–</button>
 
-  <!-- ===== Right: Side Pane (Tabs) ===== -->
-  <aside class="side" aria-label="Side panel">
-    <div class="tabs">
-      <div id="tabHistory" class="tab active">History</div>
-      <div id="tabMemory" class="tab">Memory</div>
+        <!-- Row 5 -->
+        <button class="btn" data-num="1">1</button>
+        <button class="btn" data-num="2">2</button>
+        <button class="btn" data-num="3">3</button>
+        <button class="btn btn-operation" data-op="+">+</button>
+
+        <!-- Row 6 -->
+        <button class="btn" data-action="toggle-sign">±</button>
+        <button class="btn" data-num="0">0</button>
+        <button class="btn" data-num=".">.</button>
+        <button class="btn btn-equals" data-action="equals">=</button>
+      </div>
     </div>
 
-    <div id="paneHistory" class="pane active">
-      <div id="sideDisplay" class="big">0</div>
-      <div class="toolbar"><button id="btnClearHistory" class="chip danger ghost" title="Clear all history">Clear History</button></div>
-      <div id="histEmpty" class="empty">There’s no history yet.</div>
-      <div id="histList" class="list"></div>
-    </div>
+    <!-- Side panel -->
+    <aside class="side-panel" id="sidePanel" aria-hidden="true">
+      <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="history">🕘 History</button>
+        <button class="tab-btn" data-tab="memory">💾 Memory</button>
+      </div>
 
-    <div id="paneMemory" class="pane">
-      <div class="toolbar"><button id="btnClearMemory" class="chip danger ghost" title="Clear all memory">MC (Clear All)</button></div>
-      <div id="memEmpty" class="empty">There’s nothing saved in memory.</div>
-      <div id="memList" class="list"></div>
-    </div>
-  </aside>
-</div>
+      <!-- History header -->
+      <div class="panel-body">
+        <div class="panel-head" data-head="history">
+          <button class="clear-history" id="btnClearHistory">Clear all history</button>
+        </div>
+        <div class="scroll" id="historyList">
+          <div class="no-history">There's no history yet.</div>
+        </div>
 
-<script src="script.js"></script>
+        <!-- Memory header -->
+        <div class="panel-head" data-head="memory" style="display:none">
+          <button class="clear-memory" id="btnClearMemory">Clear all memory</button>
+        </div>
+        <div class="scroll" id="memoryList" style="display:none">
+          <div class="no-memory">There's nothing saved in memory.</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
