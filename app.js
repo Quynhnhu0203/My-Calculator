@@ -86,9 +86,6 @@
         <div class="memory-item" data-idx="${idx}">
           <div class="memory-val">${fmt(val)}</div>
           <div class="memory-actions">
-            <button class="mem-mini" data-act="recall">MR</button>
-            <button class="mem-mini" data-act="plus">M+</button>
-            <button class="mem-mini" data-act="minus">M-</button>
             <button class="mem-mini" data-act="delete">X</button>
           </div>
         </div>
