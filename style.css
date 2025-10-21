@@ -166,7 +166,15 @@ body{
   .side-panel{position:fixed; right:16px; top:16px; bottom:16px; width:min(86vw,380px); transform:translateX(120%); transition:transform .25s ease; z-index:50}
   .side-panel.open{transform:translateX(0)}
 }
-
+@media (max-height: 680px){
+  .title-bar{ padding:10px 12px; }
+  .display { min-height: 80px; padding: 10px; }
+  .current-operand { font-size: 28px; }
+  .mem-bar { padding: 6px; gap: 6px; }
+  .mem-btn { height: 28px; font-size: 11px; }
+  .buttons-grid { gap: 6px; padding: 8px; }
+  .btn { font-size: 16px; border-radius: 12px; }
+}
 /* ===== Nút menu 3 sọc ===== */
 .menu-icon {
   position: relative;
@@ -182,3 +190,4 @@ body{
   background-color: var(--brand);
   box-shadow: 0 6px 0 var(--brand), 0 -6px 0 var(--brand);
 }
+
