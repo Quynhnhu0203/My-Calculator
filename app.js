@@ -27,6 +27,9 @@
     let history = JSON.parse(localStorage.getItem('calc_history')||'[]');  // newest first
     let memory  = JSON.parse(localStorage.getItem('calc_memory') || '[]'); // newest first
 
+    let percentPreview = null;
+    let binaryRightDecor = null;
+    let unaryChainDecor = null;
     //  Helpers 
     const fmt = n => {
       if (n === '') return '';
@@ -42,18 +45,32 @@
 
     function update(){
       elCurr.textContent = fmt(current);
+
       if (showLastExpr && lastExpr){
         elPrev.textContent = lastExpr;
         return;
       }
+
       if (op && prev !== ''){
-        elPrev.textContent = `${fmt(prev)} ${op}`;
-      }else if (lastExpr){
+        if (binaryRightDecor){               
+          elPrev.textContent = `${fmt(prev)} ${op} ${binaryRightDecor}`;
+        } 
+        else if (percentPreview != null){  
+          elPrev.textContent = `${fmt(prev)} ${op} ${fmt(percentPreview)}`;
+        } 
+        else {
+          elPrev.textContent = `${fmt(prev)} ${op}`;
+        }
+      }
+
+      else if (lastExpr){
         elPrev.textContent = justCalculated ? `${lastExpr} =` : lastExpr;
-      }else{
+      } 
+      else {
         elPrev.textContent = '';
       }
     }
+
 
     function renderHistory(){
       if (!history.length){
@@ -87,6 +104,7 @@
         <div class="memory-item" data-idx="${idx}">
           <div class="memory-val">${fmt(val)}</div>
           <div class="memory-actions">
+            <button class="mem-mini" data-act="recall" title="Use this value">Use</button>
             <button class="mem-mini" data-act="delete">X</button>
           </div>
         </div>
@@ -97,9 +115,26 @@
           btn.addEventListener('click',()=>{
             const act = btn.dataset.act;
             if (act==='recall'){
-              lastExpr = `M[${idx+1}]`; showLastExpr = true;
-              prev=''; op=null; waitingNew=false; justCalculated=false;
-              setCurr(memory[idx].toString());
+              const valStr = memory[idx].toString();
+
+              if (prev !== '' && op){
+                binaryRightDecor = ``;  
+                percentPreview   = null;
+
+                setCurr(valStr);                   
+                showLastExpr     = false;
+                justCalculated   = false;
+
+                waitingNew       = true;
+
+                update();
+              } else {
+                lastExpr = ``;
+                showLastExpr = true;
+                prev = ''; op = null; waitingNew = false; justCalculated = false;
+                setCurr(valStr);
+              }
+
               if (matchMedia('(max-width:1024px)').matches) closePanel();
             }else if (act==='plus'){
               const add = parseFloat(current.replace(/,/g,'')); if (!Number.isNaN(add)){
@@ -127,6 +162,9 @@
 
     //  Operations 
     function appendNumber(d){
+      unaryChainDecor = null;
+        percentPreview   = null;
+        binaryRightDecor = null;
       if (justCalculated){
         prev=''; op=null; lastExpr=''; showLastExpr=false; waitingNew=false;
         lastRepeat.op = null;
@@ -151,6 +189,7 @@
 
 
     function chooseOp(nextOp){
+      unaryChainDecor = null;
       if (current==='') return;
       showLastExpr=false; lastExpr='';
 
@@ -167,44 +206,96 @@
       const x = parseFloat(current.replace(/,/g,''));
       if (Number.isNaN(x)) return;
 
-      if (kind==='sqrt'){
-        if (x<0){ alert('Invalid input: Cannot take square root of a negative number'); return; }
-        const r = Math.sqrt(x);
-        pushHistory(`√(${current})`, r);
-        lastExpr = `√(${current})`; showLastExpr = true; justCalculated=true; setCurr(r);
-      }else if (kind==='square'){
-        const r = x*x;
-        pushHistory(`sqr(${current})`, r);
-        lastExpr = `sqr(${current})`; showLastExpr = true; justCalculated=true; setCurr(r);
-      }else if (kind==='reciprocal'){
-        if (x===0){ alert('Error: Cannot divide by zero'); return; }
-        const r = 1/x;
-        pushHistory(`1/(${current})`, r);
-        lastExpr = `1/(${current})`; showLastExpr = true; justCalculated=true; setCurr(r);
+      // Tính kết quả số
+      let r;
+      if (kind === 'sqrt') {
+        if (x < 0){ alert('Invalid input: Cannot take square root of a negative number'); return; }
+        r = Math.sqrt(x);
+      } else if (kind === 'square') {
+        r = x * x;
+      } else if (kind === 'reciprocal') {
+        if (x === 0){ alert('Error: Cannot divide by zero'); return; }
+        r = 1 / x;
+      } else return;
+
+      const makeExpr = (base) => {
+        if (kind === 'sqrt')       return `√(${base})`;
+        if (kind === 'square')     return `sqr(${base})`;
+        return `1/(${base})`;
+      };
+
+      if (prev !== '' && op){
+        const baseDecor = binaryRightDecor || current;
+        binaryRightDecor = makeExpr(baseDecor);
+
+        percentPreview   = null;
+        if (typeof unaryChainDecor !== 'undefined') unaryChainDecor = null;
+
+        setCurr(r);
+        showLastExpr   = false;
+        justCalculated = false;
+        waitingNew     = true;
+        return;
       }
+
+      const baseDecor = (typeof unaryChainDecor !== 'undefined' && unaryChainDecor) ? unaryChainDecor : current;
+      const expr      = makeExpr(baseDecor);
+      if (typeof unaryChainDecor !== 'undefined') unaryChainDecor = expr;
+
+      lastExpr       = expr;
+      showLastExpr   = true;
+      justCalculated = false;
+
+      setCurr(r);
+
+      binaryRightDecor = null;
+      percentPreview   = null;
+      unaryChainDecor = null;
     }
 
+
     function doPercent(){
-      const cur = parseFloat(current.replace(/,/g,'')); if (Number.isNaN(cur)) return;
-      if (prev!=='' && op){
-        const base = parseFloat(prev.replace(/,/g,'')); if (!Number.isNaN(base)){
-          let val = (op==='+'||op==='-') ? (base*cur/100) : (cur/100);
-          lastExpr = `${prev} ${op} ${cur}% =`; showLastExpr=true; justCalculated=false;
-          setCurr(val); return;
-        }
+      const cur = parseFloat(current.replace(/,/g,''));
+      if (Number.isNaN(cur)) return;
+
+      if (prev !== '' && op){
+        const base = parseFloat(prev.replace(/,/g,''));
+        if (Number.isNaN(base)) return;
+
+        const val = (op==='+' || op==='-') ? (base * cur / 100) : (cur / 100);
+
+        percentPreview   = val;    
+        binaryRightDecor = null;   
+        showLastExpr     = false;   
+
+        setCurr(val);               
+
+        waitingNew     = true;
+        justCalculated = false;
+        
+        update();
+        return;
       }
-      const r = cur/100;
-      pushHistory(`(${current})%`, r);
-      lastExpr = `(${current})%`; showLastExpr=true; justCalculated=true; setCurr(r);
+
+  const r = cur / 100;
+  pushHistory(`(${current})%`, r);
+  lastExpr        = `(${current})%`;
+  showLastExpr    = true;
+  justCalculated  = true;
+  percentPreview  = null;
+  binaryRightDecor= null;
+  unaryChainDecor = null;
+  setCurr(r);
     }
+
+
 
     function doEquals(){
       const hasOp = !!op && prev !== '';
 
-      // Trường hợp 1: CÓ phép toán đang chờ
       if (hasOp){
         const a = parseFloat(prev.replace(/,/g,'')); 
-        const b = parseFloat(current.replace(/,/g,''));
+        const b = parseFloat(current.replace(/,/g,''));  
         if (Number.isNaN(a) || Number.isNaN(b)) return;
 
         let r;
@@ -216,24 +307,37 @@
           r = a / b;
         } else return;
 
-        pushHistory(`${prev} ${op} ${current}`, r);
-        lastExpr = `${prev} ${op} ${current}`;
-        lastRepeat.op  = op;  
-        lastRepeat.arg = b;    
+        let exprForHistory;
+        if (binaryRightDecor){
+          exprForHistory = `${fmt(prev)} ${op} ${binaryRightDecor}`;    
+        } else if (percentPreview != null){
+          exprForHistory = `${fmt(prev)} ${op} ${fmt(percentPreview)}`;  
+        } else {
+          exprForHistory = `${fmt(prev)} ${op} ${fmt(current)}`;         
+        }
+
+        pushHistory(exprForHistory, r);
+        lastExpr = exprForHistory;
+
+        lastRepeat.op  = op;
+        lastRepeat.arg = b;
 
         current = r.toString();
         op = null;
         waitingNew = true;
         justCalculated = true;
         showLastExpr = false;
+
+        binaryRightDecor = null;
+        percentPreview   = null;
+
         update();
         return;
       }
 
-      // Trường hợp 2: KHÔNG có phép chờ nhưng vừa nhấn "=" trước đó
       if (justCalculated && lastRepeat.op !== null){
         const a = parseFloat(current.replace(/,/g,'')); 
-        const b = lastRepeat.arg;                       
+        const b = lastRepeat.arg;                      
         if (Number.isNaN(a) || Number.isNaN(b)) return;
 
         let r;
@@ -244,31 +348,43 @@
           if (b === 0){ alert('Error: Cannot divide by zero'); return; }
           r = a / b;
         } else return;
-        
-          const expr = `${fmt(a)} ${lastRepeat.op} ${fmt(b)}`;
 
+        const expr = `${fmt(a)} ${lastRepeat.op} ${fmt(b)}`;
         pushHistory(expr, r);
         lastExpr = expr;
-        showLastExpr = false;
 
         current = r.toString();
         waitingNew = true;
         justCalculated = true; 
+        showLastExpr = false;
+
+        binaryRightDecor = null;
+        percentPreview   = null;
+
         update();
         return;
       }
 
       const curVal = parseFloat(current.replace(/,/g,''));
       if (!Number.isNaN(curVal) && current !== ''){
-        pushHistory(`${current}`, curVal);
-        lastExpr = `${current}`;
+        const exprFor = unaryChainDecor ? unaryChainDecor : `${fmt(current)}`;
 
-        waitingNew = true;
-        justCalculated = true;
-        showLastExpr = false;
+        pushHistory(exprFor, curVal);
+        lastExpr = exprFor;
+
+        waitingNew    = true;
+        justCalculated= true;
+        showLastExpr  = false;
+
+        unaryChainDecor = null;
+        binaryRightDecor= null;
+        percentPreview  = null;
+
         update();
       }
+
     }
+
 
     function backspace(){
       if (justCalculated){
@@ -279,12 +395,14 @@
     }
 
     function clearEntry(){ 
+      unaryChainDecor = null;
       current='0'; 
       justCalculated=false; 
       update(); 
     }
 
     function clearAll(){
+      unaryChainDecor = null;
       current='0'; prev=''; op=null; waitingNew=false; justCalculated=false;
       lastExpr=''; showLastExpr=false;
       lastRepeat.op = null;
@@ -293,12 +411,66 @@
     }
 
 
-    function toggleSign(){ 
-      if (current!=='0'){ 
-        current = (parseFloat(current)*-1).toString(); 
-        update();
-       } 
+  function toggleSign(){
+    if (current === '') return;
+
+    const preStr = current;
+    const num    = parseFloat(current.replace(/,/g,''));
+    if (Number.isNaN(num)) return;
+
+    const wrapNegate = s => `negate(${s})`;
+    const unwrapNegate = s => (s.startsWith('negate(') && s.endsWith(')'))
+      ? s.slice(7, -1)
+      : null;
+
+    if (prev !== '' && op){
+      let baseDecor = binaryRightDecor
+        || (percentPreview != null ? fmt(percentPreview) : preStr);
+
+      const unwrapped = unwrapNegate(baseDecor);
+      if (unwrapped !== null){
+        binaryRightDecor = unwrapped;        
+      } else {
+        binaryRightDecor = wrapNegate(baseDecor); 
+      }
+
+      setCurr((num * -1).toString());
+
+      percentPreview   = null;
+      showLastExpr     = false;
+      justCalculated   = false;
+      waitingNew       = true;
+
+      update();
+      return;
     }
+
+    if (typeof unaryChainDecor !== 'undefined'){
+      if (unaryChainDecor){
+        const unwrapped = unwrapNegate(unaryChainDecor);
+        unaryChainDecor = (unwrapped !== null) ? unwrapped : wrapNegate(unaryChainDecor);
+        lastExpr        = unaryChainDecor;
+      } else {
+        unaryChainDecor = wrapNegate(preStr);
+        lastExpr        = unaryChainDecor;
+      }
+    } else {
+      const curDecor = lastExpr && lastExpr.length ? lastExpr : preStr;
+      const unwrapped = unwrapNegate(curDecor);
+      lastExpr = (unwrapped !== null) ? unwrapped : wrapNegate(curDecor);
+    }
+
+    setCurr((num * -1).toString());
+
+    showLastExpr     = true;
+    justCalculated   = false;
+    binaryRightDecor = null;
+    percentPreview   = null;
+
+    update();
+  }
+
+
 
     //  Memory 
     document.querySelectorAll('.mem-btn').forEach(b=>{
@@ -348,19 +520,20 @@
       });
     });
 
-    document.addEventListener('keydown',e=>{
-      if (e.key>='0' && e.key<='9') appendNumber(e.key);
-      else if (e.key==='.' || e.key===',') appendNumber('.');
-      else if (e.key==='+') chooseOp('+');
-      else if (e.key==='-') chooseOp('-');
-      else if (e.key==='*') chooseOp('×');
-      else if (e.key==='/') chooseOp('÷');
-      else if (e.key==='Enter' || e.key==='=') doEquals();
-      else if (e.key==='Escape') clearAll();
-      else if (e.key==='Backspace') backspace();
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.preventDefault();
+
+      if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+      else if (e.key === '.' || e.key === ',') appendNumber('.');
+      else if (e.key === '+') chooseOp('+');
+      else if (e.key === '-') chooseOp('-');
+      else if (e.key === '*') chooseOp('×');
+      else if (e.key === '/') chooseOp('÷');
+      else if (e.key === 'Enter' || e.key === '=') doEquals();   // Enter = "="
+      else if (e.key === 'Escape') clearAll();
+      else if (e.key === 'Backspace') backspace();
     });
 
-    //  Tabs 
     function showTab(name){
       tabBtns.forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
       const isHist = name==='history';
@@ -371,7 +544,6 @@
     }
     tabBtns.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 
-    //  Panel open/close (mobile overlay) 
     function openPanel(){ 
       panel.classList.add('open'); 
       panel.setAttribute('aria-hidden','false'); 
