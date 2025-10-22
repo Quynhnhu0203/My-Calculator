@@ -105,28 +105,29 @@
           <div class="memory-val">${fmt(val)}</div>
           <div class="memory-actions">
             <button class="mem-mini" data-act="recall" title="Use this value">Use</button>
-            <button class="mem-mini" data-act="delete">X</button>
+            <button class="mem-mini" data-act="delete" title="Delete this value">X</button>
           </div>
         </div>
       `).join('');
+
       listMemory.querySelectorAll('.memory-item').forEach(item=>{
         const idx = Number(item.dataset.idx);
         item.querySelectorAll('.mem-mini').forEach(btn=>{
-          btn.addEventListener('click',()=>{
+          btn.addEventListener('click',(e)=>{
+            e.stopPropagation();
+
             const act = btn.dataset.act;
             if (act==='recall'){
               const valStr = memory[idx].toString();
 
               if (prev !== '' && op){
-                binaryRightDecor = ``;  
+                binaryRightDecor = ``;
                 percentPreview   = null;
 
-                setCurr(valStr);                   
+                setCurr(valStr);
                 showLastExpr     = false;
                 justCalculated   = false;
-
                 waitingNew       = true;
-
                 update();
               } else {
                 lastExpr = ``;
@@ -136,23 +137,17 @@
               }
 
               if (matchMedia('(max-width:1024px)').matches) closePanel();
-            }else if (act==='plus'){
-              const add = parseFloat(current.replace(/,/g,'')); if (!Number.isNaN(add)){
-                const base = parseFloat(memory[idx]); memory[idx] = (base + add).toString();
-                saveMemory(); renderMemory();
-              }
-            }else if (act==='minus'){
-              const sub = parseFloat(current.replace(/,/g,'')); if (!Number.isNaN(sub)){
-                const base = parseFloat(memory[idx]); memory[idx] = (base - sub).toString();
-                saveMemory(); renderMemory();
-              }
-            }else if (act==='delete'){
-              memory.splice(idx,1); saveMemory(); renderMemory();
+
+            } else if (act==='delete'){
+              memory.splice(idx,1);
+              saveMemory();
+              renderMemory();
             }
           });
         });
       });
     }
+
 
     function pushHistory(expr, result){
       history.unshift({expr, res: result.toString()});
@@ -411,64 +406,64 @@
     }
 
 
-  function toggleSign(){
-    if (current === '') return;
+    function toggleSign(){
+      if (current === '') return;
 
-    const preStr = current;
-    const num    = parseFloat(current.replace(/,/g,''));
-    if (Number.isNaN(num)) return;
+      const preStr = current;
+      const num    = parseFloat(current.replace(/,/g,''));
+      if (Number.isNaN(num)) return;
 
-    const wrapNegate = s => `negate(${s})`;
-    const unwrapNegate = s => (s.startsWith('negate(') && s.endsWith(')'))
-      ? s.slice(7, -1)
-      : null;
+      const wrapNegate = s => `negate(${s})`;
+      const unwrapNegate = s => (s.startsWith('negate(') && s.endsWith(')'))
+        ? s.slice(7, -1)
+        : null;
 
-    if (prev !== '' && op){
-      let baseDecor = binaryRightDecor
-        || (percentPreview != null ? fmt(percentPreview) : preStr);
+      if (prev !== '' && op){
+        let baseDecor = binaryRightDecor
+          || (percentPreview != null ? fmt(percentPreview) : preStr);
 
-      const unwrapped = unwrapNegate(baseDecor);
-      if (unwrapped !== null){
-        binaryRightDecor = unwrapped;        
+        const unwrapped = unwrapNegate(baseDecor);
+        if (unwrapped !== null){
+          binaryRightDecor = unwrapped;        
+        } else {
+          binaryRightDecor = wrapNegate(baseDecor); 
+        }
+
+        setCurr((num * -1).toString());
+
+        percentPreview   = null;
+        showLastExpr     = false;
+        justCalculated   = false;
+        waitingNew       = true;
+
+        update();
+        return;
+      }
+
+      if (typeof unaryChainDecor !== 'undefined'){
+        if (unaryChainDecor){
+          const unwrapped = unwrapNegate(unaryChainDecor);
+          unaryChainDecor = (unwrapped !== null) ? unwrapped : wrapNegate(unaryChainDecor);
+          lastExpr        = unaryChainDecor;
+        } else {
+          unaryChainDecor = wrapNegate(preStr);
+          lastExpr        = unaryChainDecor;
+        }
       } else {
-        binaryRightDecor = wrapNegate(baseDecor); 
+        const curDecor = lastExpr && lastExpr.length ? lastExpr : preStr;
+        const unwrapped = unwrapNegate(curDecor);
+        lastExpr = (unwrapped !== null) ? unwrapped : wrapNegate(curDecor);
       }
 
       setCurr((num * -1).toString());
 
-      percentPreview   = null;
-      showLastExpr     = false;
+      showLastExpr     = true;
       justCalculated   = false;
-      waitingNew       = true;
+      binaryRightDecor = null;
+      percentPreview   = null;
 
       update();
-      return;
     }
-
-    if (typeof unaryChainDecor !== 'undefined'){
-      if (unaryChainDecor){
-        const unwrapped = unwrapNegate(unaryChainDecor);
-        unaryChainDecor = (unwrapped !== null) ? unwrapped : wrapNegate(unaryChainDecor);
-        lastExpr        = unaryChainDecor;
-      } else {
-        unaryChainDecor = wrapNegate(preStr);
-        lastExpr        = unaryChainDecor;
-      }
-    } else {
-      const curDecor = lastExpr && lastExpr.length ? lastExpr : preStr;
-      const unwrapped = unwrapNegate(curDecor);
-      lastExpr = (unwrapped !== null) ? unwrapped : wrapNegate(curDecor);
-    }
-
-    setCurr((num * -1).toString());
-
-    showLastExpr     = true;
-    justCalculated   = false;
-    binaryRightDecor = null;
-    percentPreview   = null;
-
-    update();
-  }
 
 
 
