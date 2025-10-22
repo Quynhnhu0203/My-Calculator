@@ -13,7 +13,7 @@
     const btnClearHistory = document.getElementById('btnClearHistory');
     const btnClearMemory  = document.getElementById('btnClearMemory');
 
-    // ==== State ====
+    //  State 
     let current = '0';
     let prev = '';
     let op = null;
@@ -21,11 +21,13 @@
     let justCalculated = false;
     let lastExpr = '';
     let showLastExpr = false;
+    let lastRepeat = { op: null, arg: null }; 
+
 
     let history = JSON.parse(localStorage.getItem('calc_history')||'[]');  // newest first
     let memory  = JSON.parse(localStorage.getItem('calc_memory') || '[]'); // newest first
 
-    // ==== Helpers ====
+    //  Helpers 
     const fmt = n => {
       if (n === '') return '';
       const s = n.toString();
@@ -71,7 +73,6 @@
           showLastExpr = true;
           prev = ''; op = null; waitingNew = false; justCalculated = false;
           setCurr(it.res);
-          // tự đóng panel trên màn nhỏ
           if (matchMedia('(max-width:1024px)').matches) closePanel();
         });
       });
@@ -124,15 +125,21 @@
       saveHistory(); renderHistory();
     }
 
-    // ==== Operations ====
+    //  Operations 
     function appendNumber(d){
       if (justCalculated){
         prev=''; op=null; lastExpr=''; showLastExpr=false; waitingNew=false;
+        lastRepeat.op = null;
+        lastRepeat.arg = null;
+
         current = (d === '.') ? '0.' : d;
         justCalculated = false;
         update(); return;
       }
       if (waitingNew){
+        lastRepeat.op = null;
+        lastRepeat.arg = null;
+
         current = (d === '.') ? '0.' : d;
         waitingNew=false; update(); return;
       }
@@ -142,13 +149,19 @@
       update();
     }
 
+
     function chooseOp(nextOp){
       if (current==='') return;
       showLastExpr=false; lastExpr='';
+
+      lastRepeat.op = null;
+      lastRepeat.arg = null;
+
       if (op && waitingNew){ op = nextOp; update(); return; }
       if (prev!=='' && !waitingNew){ doEquals(); }
       op = nextOp; prev = current; waitingNew = true; justCalculated=false; update();
     }
+
 
     function doUnary(kind){
       const x = parseFloat(current.replace(/,/g,''));
@@ -188,47 +201,74 @@
     function doEquals(){
       const hasOp = !!op && prev !== '';
 
-      // Trường hợp KHÔNG có phép toán đang chờ (chỉ nhập số rồi bấm "=")
-      if (!hasOp){
-        const curVal = parseFloat(current.replace(/,/g,''));
-        if (!Number.isNaN(curVal) && current !== ''){
-          // Lưu vào History dạng "number = number"
-          pushHistory(`${current}`, curVal);
-          lastExpr = `${current}`;
-          showLastExpr = false;
-          // Giữ nguyên current; chuyển về trạng thái “vừa tính xong”
-          op = null;
-          waitingNew = true;
-          justCalculated = true;
-          update();
-        }
+      // Trường hợp 1: CÓ phép toán đang chờ
+      if (hasOp){
+        const a = parseFloat(prev.replace(/,/g,'')); 
+        const b = parseFloat(current.replace(/,/g,''));
+        if (Number.isNaN(a) || Number.isNaN(b)) return;
+
+        let r;
+        if (op === '+') r = a + b;
+        else if (op === '-') r = a - b;
+        else if (op === '×') r = a * b;
+        else if (op === '÷'){
+          if (b === 0){ alert('Error: Cannot divide by zero'); return; }
+          r = a / b;
+        } else return;
+
+        pushHistory(`${prev} ${op} ${current}`, r);
+        lastExpr = `${prev} ${op} ${current}`;
+        lastRepeat.op  = op;  
+        lastRepeat.arg = b;    
+
+        current = r.toString();
+        op = null;
+        waitingNew = true;
+        justCalculated = true;
+        showLastExpr = false;
+        update();
         return;
       }
 
-      // Trường hợp CÓ phép toán đang chờ (bình thường)
-      const a = parseFloat(prev.replace(/,/g,'')); 
-      const b = parseFloat(current.replace(/,/g,''));
-      if (Number.isNaN(a) || Number.isNaN(b) || !op) return;
+      // Trường hợp 2: KHÔNG có phép chờ nhưng vừa nhấn "=" trước đó
+      if (justCalculated && lastRepeat.op !== null){
+        const a = parseFloat(current.replace(/,/g,'')); 
+        const b = lastRepeat.arg;                       
+        if (Number.isNaN(a) || Number.isNaN(b)) return;
 
-      let r;
-      if (op === '+') r = a + b;
-      else if (op === '-') r = a - b;
-      else if (op === '×') r = a * b;
-      else if (op === '÷'){
-        if (b === 0){ alert('Error: Cannot divide by zero'); return; }
-        r = a / b;
-      } else return;
+        let r;
+        if (lastRepeat.op === '+') r = a + b;
+        else if (lastRepeat.op === '-') r = a - b;
+        else if (lastRepeat.op === '×') r = a * b;
+        else if (lastRepeat.op === '÷'){
+          if (b === 0){ alert('Error: Cannot divide by zero'); return; }
+          r = a / b;
+        } else return;
+        
+          const expr = `${fmt(a)} ${lastRepeat.op} ${fmt(b)}`;
 
-      pushHistory(`${prev} ${op} ${current}`, r);
-      lastExpr = `${prev} ${op} ${current}`;
-      showLastExpr = false;
-      current = r.toString();
-      op = null;
-      waitingNew = true;
-      justCalculated = true;
-      update();
+        pushHistory(expr, r);
+        lastExpr = expr;
+        showLastExpr = false;
+
+        current = r.toString();
+        waitingNew = true;
+        justCalculated = true; 
+        update();
+        return;
+      }
+
+      const curVal = parseFloat(current.replace(/,/g,''));
+      if (!Number.isNaN(curVal) && current !== ''){
+        pushHistory(`${current}`, curVal);
+        lastExpr = `${current}`;
+
+        waitingNew = true;
+        justCalculated = true;
+        showLastExpr = false;
+        update();
+      }
     }
-
 
     function backspace(){
       if (justCalculated){
@@ -238,12 +278,29 @@
       update();
     }
 
-    function clearEntry(){ current='0'; justCalculated=false; update(); }
-    function clearAll(){ current='0'; prev=''; op=null; waitingNew=false; justCalculated=false; lastExpr=''; showLastExpr=false; update(); }
+    function clearEntry(){ 
+      current='0'; 
+      justCalculated=false; 
+      update(); 
+    }
 
-    function toggleSign(){ if (current!=='0'){ current = (parseFloat(current)*-1).toString(); update(); } }
+    function clearAll(){
+      current='0'; prev=''; op=null; waitingNew=false; justCalculated=false;
+      lastExpr=''; showLastExpr=false;
+      lastRepeat.op = null;
+      lastRepeat.arg = null;
+      update();
+    }
 
-    // ==== Memory ====
+
+    function toggleSign(){ 
+      if (current!=='0'){ 
+        current = (parseFloat(current)*-1).toString(); 
+        update();
+       } 
+    }
+
+    //  Memory 
     document.querySelectorAll('.mem-btn').forEach(b=>{
       b.addEventListener('click',()=>{
         const t = b.dataset.mem;
@@ -271,7 +328,7 @@
       });
     });
 
-    // ==== Buttons & Keyboard ====
+    //  Buttons & Keyboard 
     document.querySelectorAll('.btn').forEach(btn=>{
       btn.addEventListener('click',()=>{
         if (btn.dataset.num){ appendNumber(btn.dataset.num); }
@@ -303,7 +360,7 @@
       else if (e.key==='Backspace') backspace();
     });
 
-    // ==== Tabs ====
+    //  Tabs 
     function showTab(name){
       tabBtns.forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
       const isHist = name==='history';
@@ -314,20 +371,31 @@
     }
     tabBtns.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 
-    // ==== Panel open/close (mobile overlay) ====
-    function openPanel(){ panel.classList.add('open'); panel.setAttribute('aria-hidden','false'); togglePanel.setAttribute('aria-expanded','true'); }
-    function closePanel(){ panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); togglePanel.setAttribute('aria-expanded','false'); }
+    //  Panel open/close (mobile overlay) 
+    function openPanel(){ 
+      panel.classList.add('open'); 
+      panel.setAttribute('aria-hidden','false'); 
+      togglePanel.setAttribute('aria-expanded','true'); 
+    }
+
+    function closePanel(){ 
+      panel.classList.remove('open'); 
+      panel.setAttribute('aria-hidden','true'); 
+      togglePanel.setAttribute('aria-expanded','false'); 
+    }
+
     togglePanel.addEventListener('click', (e)=>{
       e.stopPropagation();
       panel.classList.contains('open') ? closePanel() : openPanel();
     });
+
     document.addEventListener('click', (e)=>{
       if (matchMedia('(max-width:1024px)').matches){
         if (!panel.contains(e.target) && !togglePanel.contains(e.target)) closePanel();
       }
     });
 
-    // ==== Clear buttons ====
+    //  Clear buttons 
     btnClearHistory.addEventListener('click', ()=>{ history=[]; saveHistory(); renderHistory(); });
     btnClearMemory.addEventListener('click',  ()=>{ memory=[];  saveMemory();  renderMemory();  });
 

@@ -30,7 +30,7 @@ body{
 }
 
 
-/* ===== Layout tổng ===== */
+/*  Layout tổng  */
 .calculator-container{
   display:flex;
   gap:12px;
@@ -51,7 +51,7 @@ body{
   overflow:hidden;
 }
 
-/* ===== Thanh tiêu đề ===== */
+/*  Thanh tiêu đề  */
 .title-bar{
   display:flex; align-items:center; justify-content:space-between;
   padding:12px 14px;
@@ -67,7 +67,7 @@ body{
   padding:6px 10px; background:var(--chip); border-radius:999px; font-weight:700; font-size:18px;
 }
 
-/* ===== Khu hiển thị ===== */
+/*  Khu hiển thị  */
 .display{
   padding:18px; text-align:right; border-bottom:1px solid var(--border);
   display:flex; flex-direction:column; gap:6px; min-height:120px; background:#fff8ffcc;
@@ -79,7 +79,7 @@ body{
   font-size:44px; font-weight:800; word-wrap:break-word; word-break:break-all;
 }
 
-/* ===== Memory ===== */
+/*  Memory  */
 .mem-bar{
   display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:12px; border-bottom:1px solid var(--border); background:#fff;
 }
@@ -90,7 +90,7 @@ body{
 .mem-btn:hover{background:#f8faff}
 .mem-btn:active{transform:translateY(1px)}
 
-/* ===== Lưới phím ===== */
+/*  Lưới phím  */
 .buttons-grid{
   display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:1fr; gap:10px;
   padding:12px; background:#fff; flex:1 1 auto; min-height:0;
@@ -111,7 +111,7 @@ body{
 .btn-equals:hover{background:var(--brand-600)}
 .btn-clear{background:#fff9fc}
 
-/* ===== Panel phải: Tabs Lịch sử / Bộ nhớ ===== */
+/*  Panel phải */
 .side-panel{
   width:360px; flex:0 0 360px;
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -144,7 +144,7 @@ body{
 .history-expression{font-size:14px; color:var(--muted)}
 .history-result{font-size:18px; font-weight:800; text-align:right}
 
-/* Bộ nhớ (list) */
+/* Bộ nhớ */
 .memory-item{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
   padding:10px 8px; border:1px solid var(--border); border-radius:12px; margin-bottom:8px; background:#fff;
@@ -156,12 +156,12 @@ body{
 }
 .mem-mini:hover{background:#eef3ff}
 
-/* Scrollbar xinh */
+/* Scrollbar */
 .scroll::-webkit-scrollbar{width:12px}
 .scroll::-webkit-scrollbar-track{background:#f4f6fb; border-radius:999px}
 .scroll::-webkit-scrollbar-thumb{background:#cdd5ef; border-radius:999px; border:3px solid #f4f6fb}
 
-/* Responsive: panel thành overlay */
+/* Responsive*/
 @media (max-width: 1024px){
   .side-panel{position:fixed; right:16px; top:16px; bottom:16px; width:min(86vw,380px); transform:translateX(120%); transition:transform .25s ease; z-index:50}
   .side-panel.open{transform:translateX(0)}
@@ -175,7 +175,6 @@ body{
   .buttons-grid { gap: 6px; padding: 8px; }
   .btn { font-size: 16px; border-radius: 12px; }
 }
-/* ===== Nút menu 3 sọc ===== */
 .menu-icon {
   position: relative;
   display: inline-block;
@@ -190,4 +189,3 @@ body{
   background-color: var(--brand);
   box-shadow: 0 6px 0 var(--brand), 0 -6px 0 var(--brand);
 }
-
